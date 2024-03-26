@@ -1,11 +1,11 @@
-from django.db import models
-from ckeditor.fields import RichTextField
-from cloudinary.models import CloudinaryField
 from django.contrib.auth.models import AbstractUser
+from cloudinary.models import CloudinaryField
+from ckeditor.fields import RichTextField
+from django.db import models
 
 
 class User(AbstractUser):
-    pass
+    avatar = CloudinaryField(null=True)
 
 
 class BaseModel(models.Model):
@@ -19,6 +19,7 @@ class BaseModel(models.Model):
 
 class Category(BaseModel):
     name = models.CharField(max_length=100, unique=True)
+    icon = models.CharField(max_length=20, default='tag')
 
     def __str__(self):
         return self.name
@@ -47,22 +48,29 @@ class Lesson(BaseModel):
     content = RichTextField()
     image = CloudinaryField()
 
-    course = models.ForeignKey(Course, on_delete=models.PROTECT)
-    tags = models.ManyToManyField('Tag', blank=True, related_name='lessons')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    tags = models.ManyToManyField(Tag, blank=True, related_name='lessons')
 
     def __str__(self):
         return self.subject
 
 
-class Comment(BaseModel):
+class Interaction(BaseModel):
+    class Meta:
+        abstract = True
+
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+
+class Comment(Interaction):
     content = RichTextField()
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+
+class Like(Interaction):
+    class Meta:
+        unique_together = ('user', 'lesson')
 
 
-class Rating(BaseModel):
+class Rating(Interaction):
     rating = models.DecimalField(max_digits=2, decimal_places=1)
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
